@@ -281,7 +281,7 @@ class Chef
 
       option :ebs_volume_type,
         long: "--ebs-volume-type TYPE",
-        description: "Possible values are standard (magnetic) | io1 | gp2 | gp3 | sc1 | st1. Default is gp2",
+        description: "Possible values are standard (magnetic) | io1 | gp2 | gp3 | sc1 | st1. Default is gp3",
         proc: Proc.new { |key| Chef::Config[:knife][:ebs_volume_type] = key },
         default: "gp3"
 
@@ -614,14 +614,14 @@ class Chef
             load_winrm_deps
             print "\n#{ui.color("Waiting for winrm access to become available", :magenta)}"
             print(".") until tcp_test_winrm(ssh_connect_host, locate_config_value(:winrm_port)) do
-              sleep 10
+              sleep 5
               puts("done")
             end
           else
             print "\n#{ui.color("Waiting for sshd access to become available", :magenta)}"
             # If FreeSSHd, winsshd etc are available
             print(".") until tcp_test_ssh(ssh_connect_host, config[:ssh_port]) do
-              sleep @initial_sleep_delay ||= (vpc_mode? ? 40 : 10)
+              sleep @initial_sleep_delay ||= (vpc_mode? ? 10 : 5)
               puts("done")
             end
             ssh_override_winrm
@@ -1283,9 +1283,9 @@ EOH
         print(".") until tunnel_test_ssh(ssh_gateway, hostname) do
           if initial
             initial = false
-            sleep (vpc_mode? ? 40 : 10)
+            sleep (vpc_mode? ? 10 : 5)
           else
-            sleep 10
+            sleep 5
           end
           puts("done")
         end
@@ -1337,9 +1337,9 @@ EOH
         print(".") until tcp_test_ssh(hostname, ssh_port) do
           if initial
             initial = false
-            sleep (vpc_mode? ? 40 : 10)
+            sleep (vpc_mode? ? 10 : 5)
           else
-            sleep 10
+            sleep 5
           end
           puts("done")
         end
