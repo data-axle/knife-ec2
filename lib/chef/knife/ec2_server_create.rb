@@ -385,14 +385,14 @@ class Chef
           if winrm?
             print "\n#{ui.color("Waiting for winrm access to become available", :magenta)}"
             print(".") until tcp_test_winrm(connection_host, connection_port) do
-              sleep 10
+              sleep 5
               puts("done")
             end
           else
             print "\n#{ui.color("Waiting for sshd access to become available", :magenta)}"
             # If FreeSSHd, winsshd etc are available
             print(".") until tcp_test_ssh(connection_host, connection_port) do
-              sleep @initial_sleep_delay ||= (vpc_mode? ? 40 : 10)
+              sleep @initial_sleep_delay ||= (vpc_mode? ? 10 : 5)
               puts("done")
             end
           end
@@ -1056,9 +1056,9 @@ class Chef
         print(".") until tunnel_test_ssh(ssh_gateway, hostname) do
           if initial
             initial = false
-            sleep (vpc_mode? ? 40 : 10)
+            sleep (vpc_mode? ? 10 : 5)
           else
-            sleep 10
+            sleep 5
           end
           puts("done")
         end
@@ -1110,9 +1110,9 @@ class Chef
         print(".") until tcp_test_ssh(hostname, ssh_port) do
           if initial
             initial = false
-            sleep (vpc_mode? ? 40 : 10)
+            sleep (vpc_mode? ? 10 : 5)
           else
-            sleep 10
+            sleep 5
           end
           puts("done")
         end
