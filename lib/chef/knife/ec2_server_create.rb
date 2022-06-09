@@ -281,9 +281,9 @@ class Chef
 
       option :ebs_volume_type,
         long: "--ebs-volume-type TYPE",
-        description: "Possible values are standard (magnetic) | io1 | gp2 | sc1 | st1. Default is gp2",
+        description: "Possible values are standard (magnetic) | io1 | gp2 | gp3 | sc1 | st1. Default is gp2",
         proc: Proc.new { |key| Chef::Config[:knife][:ebs_volume_type] = key },
-        default: "gp2"
+        default: "gp3"
 
       option :ebs_provisioned_iops,
         long: "--provisioned-iops IOPS",
@@ -924,8 +924,8 @@ class Chef
           exit 1
         end
 
-        if config[:ebs_volume_type] && ! %w{gp2 io1 standard}.include?(config[:ebs_volume_type])
-          ui.error("--ebs-volume-type must be 'standard' or 'io1' or 'gp2'")
+        if config[:ebs_volume_type] && ! %w{gp2 gp3 io1 standard}.include?(config[:ebs_volume_type])
+          ui.error("--ebs-volume-type must be 'standard' or 'io1' or 'gp2' or 'gp3'")
           msg opt_parser
           exit 1
         end
@@ -974,8 +974,8 @@ class Chef
           # validation for ebs_size and ebs_volume_type and ebs_encrypted
           if !locate_config_value(:ebs_size)
             errors << "--ebs-encrypted option requires valid --ebs-size to be specified."
-          elsif (locate_config_value(:ebs_volume_type) == "gp2") && ! locate_config_value(:ebs_size).to_i.between?(1, 16384)
-            errors << "--ebs-size should be in between 1-16384 for 'gp2' ebs volume type."
+          elsif (locate_config_value(:ebs_volume_type) =~ /^gp/) && ! locate_config_value(:ebs_size).to_i.between?(1, 16384)
+            errors << "--ebs-size should be in between 1-16384 for 'gp*' ebs volume type."
           elsif (locate_config_value(:ebs_volume_type) == "io1") && ! locate_config_value(:ebs_size).to_i.between?(4, 16384)
             errors << "--ebs-size should be in between 4-16384 for 'io1' ebs volume type."
           elsif (locate_config_value(:ebs_volume_type) == "standard") && ! locate_config_value(:ebs_size).to_i.between?(1, 1024)
