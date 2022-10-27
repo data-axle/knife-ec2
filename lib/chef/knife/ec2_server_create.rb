@@ -277,7 +277,7 @@ class Chef
 
         if config[:spot_price]
           server_def = spot_instances_attributes
-          spot_request = ec2_connection.request_spot_instances(server_def)
+          spot_request = ec2_connection.request_spot_instances(server_def).spot_instance_requests.first
           msg_pair("Spot Request ID", spot_request.spot_instance_request_id)
           msg_pair("Spot Request Type", spot_request.type)
           msg_pair("Spot Price", spot_request.spot_price)
