@@ -306,7 +306,7 @@ class Chef
           @server = fetch_ec2_instance(spot_response.instance_id)
         else
           begin
-            response_obj = create_ec2_instance(server_attributes)
+            response_obj = create_ec2_instance(server_attributes.merge(max_count: 1, min_count: 1))
             instance_id = response_obj.instances[0].instance_id
             print "\n#{ui.color("Waiting for EC2 to create the instance\n", :magenta)}"
 
@@ -854,8 +854,6 @@ class Chef
           image_id: config[:image],
           instance_type: config[:flavor],
           key_name: config[:ssh_key_name],
-          max_count: 1,
-          min_count: 1,
           placement: {
             availability_zone: config[:availability_zone],
           },
@@ -972,8 +970,6 @@ class Chef
 
         ## cannot pass disable_api_termination option to the API when using spot instances ##
         attributes[:disable_api_termination] = config[:disable_api_termination] if config[:spot_price].nil?
-
-        attributes[:instance_initiated_shutdown_behavior] = config[:instance_initiated_shutdown_behavior]
 
         if config[:cpu_credits]
           attributes[:credit_specification] =
