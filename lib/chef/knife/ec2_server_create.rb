@@ -161,8 +161,9 @@ class Chef
 
       option :ebs_volume_type,
         long: "--ebs-volume-type TYPE",
-        description: "Possible values are standard (magnetic) | io1 | gp2 | sc1 | st1. Default is gp2",
-        default: "gp2"
+        description: "Possible values are standard (magnetic) | io1 | gp2 | gp3 | sc1 | st1. Default is gp3",
+        proc: Proc.new { |key| Chef::Config[:knife][:ebs_volume_type] = key },
+        default: "gp3"
 
       option :ebs_provisioned_iops,
         long: "--provisioned-iops IOPS",
@@ -276,7 +277,7 @@ class Chef
 
         if config[:spot_price]
           server_def = spot_instances_attributes
-          spot_request = ec2_connection.request_spot_instances(server_def)
+          spot_request = ec2_connection.request_spot_instances(server_def).spot_instance_requests.first
           msg_pair("Spot Request ID", spot_request.spot_instance_request_id)
           msg_pair("Spot Request Type", spot_request.type)
           msg_pair("Spot Price", spot_request.spot_price)
@@ -305,7 +306,7 @@ class Chef
           @server = fetch_ec2_instance(spot_response.instance_id)
         else
           begin
-            response_obj = create_ec2_instance(server_attributes)
+            response_obj = create_ec2_instance(server_attributes.merge(max_count: 1, min_count: 1))
             instance_id = response_obj.instances[0].instance_id
             print "\n#{ui.color("Waiting for EC2 to create the instance\n", :magenta)}"
 
@@ -384,14 +385,14 @@ class Chef
           if winrm?
             print "\n#{ui.color("Waiting for winrm access to become available", :magenta)}"
             print(".") until tcp_test_winrm(connection_host, connection_port) do
-              sleep 10
+              sleep 5
               puts("done")
             end
           else
             print "\n#{ui.color("Waiting for sshd access to become available", :magenta)}"
             # If FreeSSHd, winsshd etc are available
             print(".") until tcp_test_ssh(connection_host, connection_port) do
-              sleep @initial_sleep_delay ||= (vpc_mode? ? 40 : 10)
+              sleep @initial_sleep_delay ||= (vpc_mode? ? 10 : 5)
               puts("done")
             end
           end
@@ -626,8 +627,8 @@ class Chef
           exit 1
         end
 
-        if config[:ebs_volume_type] && ! %w{gp2 io1 standard st1 sc1}.include?(config[:ebs_volume_type])
-          ui.error("--ebs-volume-type must be 'standard' or 'io1' or 'gp2' or 'st1' or 'sc1'")
+        if config[:ebs_volume_type] && ! %w{gp2 gp3 io1 standard st1 sc1}.include?(config[:ebs_volume_type])
+          ui.error("--ebs-volume-type must be 'standard' or 'io1' or 'gp2' or 'gp3' or 'st1' or 'sc1'")
           msg opt_parser
           exit 1
         end
@@ -682,8 +683,9 @@ class Chef
           # validation for ebs_size and ebs_volume_type and ebs_encrypted
           if !config[:ebs_size]
             errors << "--ebs-encrypted option requires valid --ebs-size to be specified."
-          elsif (config[:ebs_volume_type] == "gp2") && ! config[:ebs_size].to_i.between?(1, 16384)
-            errors << "--ebs-size should be in between 1-16384 for 'gp2' ebs volume type."
+
+          elsif (config[:ebs_volume_type] =~ /^gp/) && ! config[:ebs_size].to_i.between?(1, 16384)
+            errors << "--ebs-size should be in between 1-16384 for 'gp*' ebs volume type."
           elsif (config[:ebs_volume_type] == "io1") && ! config[:ebs_size].to_i.between?(4, 16384)
             errors << "--ebs-size should be in between 4-16384 for 'io1' ebs volume type."
           elsif (config[:ebs_volume_type] == "standard") && ! config[:ebs_size].to_i.between?(1, 1024)
@@ -852,8 +854,6 @@ class Chef
           image_id: config[:image],
           instance_type: config[:flavor],
           key_name: config[:ssh_key_name],
-          max_count: 1,
-          min_count: 1,
           placement: {
             availability_zone: config[:availability_zone],
           },
@@ -971,8 +971,6 @@ class Chef
         ## cannot pass disable_api_termination option to the API when using spot instances ##
         attributes[:disable_api_termination] = config[:disable_api_termination] if config[:spot_price].nil?
 
-        attributes[:instance_initiated_shutdown_behavior] = config[:instance_initiated_shutdown_behavior]
-
         if config[:cpu_credits]
           attributes[:credit_specification] =
             {
@@ -1054,9 +1052,9 @@ class Chef
         print(".") until tunnel_test_ssh(ssh_gateway, hostname) do
           if initial
             initial = false
-            sleep (vpc_mode? ? 40 : 10)
+            sleep (vpc_mode? ? 10 : 5)
           else
-            sleep 10
+            sleep 5
           end
           puts("done")
         end
@@ -1108,9 +1106,9 @@ class Chef
         print(".") until tcp_test_ssh(hostname, ssh_port) do
           if initial
             initial = false
-            sleep (vpc_mode? ? 40 : 10)
+            sleep (vpc_mode? ? 10 : 5)
           else
-            sleep 10
+            sleep 5
           end
           puts("done")
         end
